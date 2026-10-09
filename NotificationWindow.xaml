@@ -1,0 +1,44 @@
+<Window x:Class="AudioSwitch.NotificationWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="AudioSwitch Notification"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        SizeToContent="WidthAndHeight"
+        ResizeMode="NoResize"
+        Opacity="0">
+    <Border Background="#E6202020"
+            CornerRadius="10"
+            BorderBrush="#40FFFFFF"
+            BorderThickness="1"
+            Padding="18,12"
+            Margin="10">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="15" Color="#000000" Opacity="0.5" ShadowDepth="2" />
+        </Border.Effect>
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <!-- Audio Icon representation -->
+            <TextBlock x:Name="IconText"
+                       Text="[Audio]"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       Foreground="#00A2FF"
+                       VerticalAlignment="Center"
+                       Margin="0,0,12,0"/>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="オーディオ出力切替"
+                           FontSize="11"
+                           Foreground="#88FFFFFF"
+                           Margin="0,0,0,2"/>
+                <TextBlock x:Name="MessageText"
+                           Text="AT2020 イヤホン に切り替えました"
+                           FontSize="14"
+                           FontWeight="Medium"
+                           Foreground="#FFFFFF"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

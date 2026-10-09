@@ -1,0 +1,17 @@
+# Build and Publish Outputs
+bin/
+obj/
+publish/
+
+# Visual Studio / VS Code
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Local Shortcuts and Logs
+*.lnk
+*.log
+
+# Temporary / Screenshots
+*.png
