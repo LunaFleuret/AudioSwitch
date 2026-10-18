@@ -1,0 +1,16 @@
+{
+  "devices": [
+    {
+      "key": "speakers",
+      "displayName": "スピーカー",
+      "searchKeyword": "Speakers",
+      "iconIndex": -3016
+    },
+    {
+      "key": "headphones",
+      "displayName": "ヘッドホン",
+      "searchKeyword": "Headphones",
+      "iconIndex": -3012
+    }
+  ]
+}

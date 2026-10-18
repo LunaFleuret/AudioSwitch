@@ -13,5 +13,10 @@ publish/
 *.lnk
 *.log
 
-# Temporary / Screenshots
+# Temporary / Screenshots / Media
 *.png
+*.avif
+
+# User Configuration
+config.json
+!config.example.json

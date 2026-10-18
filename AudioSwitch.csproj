@@ -11,5 +11,14 @@
     <AssemblyName>AudioSwitch</AssemblyName>
     <RootNamespace>AudioSwitch</RootNamespace>
   </PropertyGroup>
+ 
+  <ItemGroup>
+    <None Update="config.example.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="config.json" Condition="Exists('config.json')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 
 </Project>

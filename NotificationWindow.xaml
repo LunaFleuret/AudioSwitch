@@ -34,7 +34,7 @@
                            Foreground="#88FFFFFF"
                            Margin="0,0,0,2"/>
                 <TextBlock x:Name="MessageText"
-                           Text="AT2020 イヤホン に切り替えました"
+                           Text="オーディオ出力を切り替えました"
                            FontSize="14"
                            FontWeight="Medium"
                            Foreground="#FFFFFF"/>

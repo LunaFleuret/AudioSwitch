@@ -25,6 +25,9 @@ namespace AudioSwitch
             }
             catch { }
 
+            // Load device configurations
+            AudioManager.LoadConfig();
+
             // Ensure JumpList is registered
             UpdateJumpList();
 

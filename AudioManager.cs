@@ -1,7 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Unicode;
 
 namespace AudioSwitch
 {
@@ -13,16 +17,8 @@ namespace AudioSwitch
         public bool IsDefault { get; set; }
     }
 
-    public enum TargetDeviceType
-    {
-        AT2020,
-        BenQ,
-        Momentum4
-    }
-
     public class TargetDeviceDefinition
     {
-        public TargetDeviceType Type { get; set; }
         public string Key { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
         public string SearchKeyword { get; set; } = string.Empty;
@@ -30,42 +26,142 @@ namespace AudioSwitch
         public int IconResourceIndex { get; set; }
     }
 
+    public class AppConfig
+    {
+        public List<ConfigDeviceItem>? Devices { get; set; }
+    }
+
+    public class ConfigDeviceItem
+    {
+        public string? Key { get; set; }
+        public string? DisplayName { get; set; }
+        public string? SearchKeyword { get; set; }
+        public string? IconPath { get; set; }
+        public int? IconIndex { get; set; }
+    }
+
     public static class AudioManager
     {
         private static readonly PropertyKey PKEY_Device_FriendlyName = new PropertyKey(new Guid("a45c254e-df1c-4efd-8020-67d146a850e0"), 14);
 
-        private static readonly string MmresPath = System.IO.Path.Combine(Environment.SystemDirectory, "mmres.dll");
+        private static readonly string MmresPath = Path.Combine(Environment.SystemDirectory, "mmres.dll");
 
-        public static readonly List<TargetDeviceDefinition> TargetDevices = new()
+        public static List<TargetDeviceDefinition> TargetDevices { get; private set; } = new();
+
+        public static void LoadConfig()
         {
-            new TargetDeviceDefinition
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string configPath = Path.Combine(baseDir, "config.json");
+
+            if (!File.Exists(configPath))
             {
-                Type = TargetDeviceType.BenQ,
-                Key = "benq",
-                DisplayName = "BenQ モニター",
-                SearchKeyword = "BenQ",
-                IconResourcePath = MmresPath,
-                IconResourceIndex = -3016
-            },
-            new TargetDeviceDefinition
-            {
-                Type = TargetDeviceType.AT2020,
-                Key = "at2020",
-                DisplayName = "AT2020 イヤホン",
-                SearchKeyword = "AT2020",
-                IconResourcePath = MmresPath,
-                IconResourceIndex = -3015
-            },
-            new TargetDeviceDefinition
-            {
-                Type = TargetDeviceType.Momentum4,
-                Key = "momentum",
-                DisplayName = "MOMENTUM 4",
-                SearchKeyword = "MOMENTUM 4",
-                IconResourcePath = MmresPath,
-                IconResourceIndex = -3012
+                string currentDirConfig = Path.Combine(Directory.GetCurrentDirectory(), "config.json");
+                if (File.Exists(currentDirConfig))
+                {
+                    configPath = currentDirConfig;
+                }
             }
-        };
+
+            if (File.Exists(configPath))
+            {
+                try
+                {
+                    string json = File.ReadAllText(configPath);
+                    var config = JsonSerializer.Deserialize<AppConfig>(json, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+
+                    if (config?.Devices != null && config.Devices.Count > 0)
+                    {
+                        TargetDevices = config.Devices.Select((d, idx) => new TargetDeviceDefinition
+                        {
+                            Key = string.IsNullOrWhiteSpace(d.Key) ? $"device{idx + 1}" : d.Key.Trim().ToLowerInvariant(),
+                            DisplayName = string.IsNullOrWhiteSpace(d.DisplayName) ? (d.SearchKeyword ?? $"Device {idx + 1}") : d.DisplayName.Trim(),
+                            SearchKeyword = string.IsNullOrWhiteSpace(d.SearchKeyword) ? (d.DisplayName ?? "") : d.SearchKeyword.Trim(),
+                            IconResourcePath = string.IsNullOrWhiteSpace(d.IconPath) ? MmresPath : d.IconPath,
+                            IconResourceIndex = d.IconIndex ?? -3016
+                        }).ToList();
+                        return;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to load config.json: {ex.Message}");
+                }
+            }
+
+            // config.json が見つからない場合は接続中デバイスから自動構成して生成
+            AutoConfigureDevices(configPath);
+        }
+
+        private static void AutoConfigureDevices(string savePath)
+        {
+            var activeDevices = GetRenderDevices().Where(d => d.State.HasFlag(DeviceState.Active)).ToList();
+            var list = new List<TargetDeviceDefinition>();
+            var configItems = new List<ConfigDeviceItem>();
+
+            for (int i = 0; i < activeDevices.Count; i++)
+            {
+                var dev = activeDevices[i];
+                string name = dev.Name;
+                string lower = name.ToLowerInvariant();
+                int icon = (lower.Contains("headphone") || lower.Contains("headset") || lower.Contains("earphone") || lower.Contains("イヤホン") || lower.Contains("ヘッドホン"))
+                    ? -3012
+                    : -3016;
+
+                string key = $"dev{i + 1}";
+                list.Add(new TargetDeviceDefinition
+                {
+                    Key = key,
+                    DisplayName = name,
+                    SearchKeyword = name,
+                    IconResourcePath = MmresPath,
+                    IconResourceIndex = icon
+                });
+
+                configItems.Add(new ConfigDeviceItem
+                {
+                    Key = key,
+                    DisplayName = name,
+                    SearchKeyword = name,
+                    IconIndex = icon
+                });
+            }
+
+            if (list.Count == 0)
+            {
+                list.Add(new TargetDeviceDefinition
+                {
+                    Key = "speakers",
+                    DisplayName = "スピーカー",
+                    SearchKeyword = "Speakers",
+                    IconResourcePath = MmresPath,
+                    IconResourceIndex = -3016
+                });
+                configItems.Add(new ConfigDeviceItem
+                {
+                    Key = "speakers",
+                    DisplayName = "スピーカー",
+                    SearchKeyword = "Speakers",
+                    IconIndex = -3016
+                });
+            }
+
+            TargetDevices = list;
+
+            try
+            {
+                var options = new JsonSerializerOptions
+                {
+                    WriteIndented = true,
+                    Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)
+                };
+                string json = JsonSerializer.Serialize(new AppConfig { Devices = configItems }, options);
+                File.WriteAllText(savePath, json);
+            }
+            catch { }
+        }
 
         public static List<AudioDeviceInfo> GetRenderDevices()
         {
